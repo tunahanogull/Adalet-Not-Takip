@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import json
 import os
+import sys
 from datetime import datetime
 import base64
 import hashlib
@@ -12,9 +13,33 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+# --- BULUT VERİTABANI KÜTÜPHANELERİ ---
+import firebase_admin
+from firebase_admin import credentials, db
+
+# --- SİSTEM AYARLARI ---
 ADMIN_KEY = base64.b64decode("YW5hZG9sdWFkYWxldC4zNA==").decode('utf-8') 
-AYARLAR_DOSYASI = "ayarlar.json" # Bu yerel kalacak (Beni hatırla ve tema bilgisayara özeldir)
-FIREBASE_ANAHTAR = "firebase_anahtar.json"
+AYARLAR_DOSYASI = "ayarlar.json"
+
+# --- GİZLİ ŞİFRE RADARI (.exe içindeki firebase_anahtar'ı bulur) ---
+def dosya_yolunu_bul(goreceli_yol):
+    try:
+        temel_yol = sys._MEIPASS
+    except Exception:
+        temel_yol = os.path.abspath(".")
+    return os.path.join(temel_yol, goreceli_yol)
+
+FIREBASE_ANAHTAR = dosya_yolunu_bul("firebase_anahtar.json")
+
+# --- FIREBASE BAĞLANTISI ---
+try:
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(FIREBASE_ANAHTAR)
+        firebase_admin.initialize_app(cred, {
+            'databaseURL': 'https://adalet-not-takip-default-rtdb.europe-west1.firebasedatabase.app/'
+        })
+except Exception as e:
+    print(f"Firebase Başlatma Hatası: {e}")
 
 # --- TEMA SİSTEMİ ---
 THEMES = {
@@ -46,32 +71,34 @@ class GirisEkrani:
         self.root = root
         self.root.title("Adalet Not Takip - Giriş")
         self.root.geometry("450x650")
+        
         self.ayarlar = ayar_yukle()
         self.tema_adi = self.ayarlar.get("tema", "dark")
         self.t = THEMES[self.tema_adi]
         self.root.configure(bg=self.t["bg"])
                 
-        # --- OTOMATİK GİRİŞ (BENİ HATIRLA) KONTROLÜ ---
+        # --- OTOMATİK GİRİŞ KONTROLÜ ---
         if self.ayarlar.get("beni_hatirla") and self.ayarlar.get("son_kullanici"):
             k_adi = self.ayarlar["son_kullanici"]
             sifre_b64 = self.ayarlar.get("son_sifre", "")
             try:
                 sifre = base64.b64decode(sifre_b64.encode()).decode()
                 if self.sessiz_giris(k_adi, sifre):
-                    return # Başarılıysa giriş ekranını hiç çizmeden atla
+                    return 
             except: pass
             
         self.sayfa_giris()
 
     def sessiz_giris(self, k_adi, sifre):
-        with open(KULLANICI_VERITABANI, "r") as f:
-            kullanicilar = json.load(f)
+        try:
+            ref = db.reference('kullanicilar')
+            kullanicilar = ref.get() or {}
             
-        if k_adi in kullanicilar and kullanicilar[k_adi]["sifre"] == sifre_hashle(sifre):
-            gizli_anahtar = kullanicilar[k_adi]["gizli_anahtar"]
-            self.ekrani_temizle()
-            NotUygulamasi(self.root, k_adi, gizli_anahtar) 
-            return True
+            if k_adi in kullanicilar and kullanicilar[k_adi]["sifre"] == sifre_hashle(sifre):
+                self.ekrani_temizle()
+                NotUygulamasi(self.root, k_adi) 
+                return True
+        except: pass
         return False
 
     def ekrani_temizle(self):
@@ -100,7 +127,6 @@ class GirisEkrani:
         sifre_ent = tk.Entry(frame, font=("Segoe UI", 13), bg=self.t["accent"], fg=self.t["fg"], show="*", bd=0, insertbackground=self.t["fg"])
         sifre_ent.pack(fill="x", pady=(5, 10), ipady=10)
 
-        # --- BENİ HATIRLA VE ŞİFREMİ UNUTTUM SATIRI ---
         alt_frame = tk.Frame(frame, bg=self.t["bg"])
         alt_frame.pack(fill="x", pady=(0, 20))
         
@@ -178,12 +204,14 @@ class GirisEkrani:
             messagebox.showwarning("Hata", "Alanlar boş bırakılamaz!")
             return
 
-        with open(KULLANICI_VERITABANI, "r") as f:
-            kullanicilar = json.load(f)
+        try:
+            ref = db.reference('kullanicilar')
+            kullanicilar = ref.get() or {}
+        except Exception as e:
+            messagebox.showerror("Bağlantı Hatası", f"Veritabanına ulaşılamıyor: {e}")
+            return
 
         if k_adi in kullanicilar and kullanicilar[k_adi]["sifre"] == sifre_hashle(sifre):
-            
-            # --- BENİ HATIRLA İŞLEMİ ---
             if self.beni_hatirla_var.get():
                 self.ayarlar["beni_hatirla"] = True
                 self.ayarlar["son_kullanici"] = k_adi
@@ -194,9 +222,8 @@ class GirisEkrani:
                 self.ayarlar.pop("son_sifre", None)
             ayar_kaydet(self.ayarlar)
 
-            gizli_anahtar = kullanicilar[k_adi]["gizli_anahtar"]
             self.ekrani_temizle()
-            NotUygulamasi(self.root, k_adi, gizli_anahtar) 
+            NotUygulamasi(self.root, k_adi) 
         else:
             messagebox.showerror("Hata", "Kullanıcı adı veya şifre yanlış!\nSisteme erişim engellendi.")
 
@@ -210,93 +237,74 @@ class GirisEkrani:
             messagebox.showerror("Güvenlik İhlali", "Admin Key hatalı! Kayıt işlemi reddedildi.")
             return
 
-        with open(KULLANICI_VERITABANI, "r") as f:
-            kullanicilar = json.load(f)
+        try:
+            ref = db.reference('kullanicilar')
+            kullanicilar = ref.get() or {}
 
-        if k_adi in kullanicilar:
-            messagebox.showwarning("Hata", "Bu kullanıcı adı zaten alınmış!")
-            return
+            if k_adi in kullanicilar:
+                messagebox.showwarning("Hata", "Bu kullanıcı adı zaten alınmış!")
+                return
 
-        kisisel_anahtar = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+            kullanicilar[k_adi] = {
+                "sifre": sifre_hashle(sifre),
+                "eposta": mail
+            }
 
-        kullanicilar[k_adi] = {
-            "sifre": sifre_hashle(sifre),
-            "eposta": mail, 
-            "gizli_anahtar": kisisel_anahtar
-        }
+            ref.set(kullanicilar)
+            messagebox.showinfo("Başarılı", "Kayıt başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.")
+            self.sayfa_giris()
+        except Exception as e:
+            messagebox.showerror("Bulut Hatası", f"Kayıt yapılamadı: {e}")
 
-        with open(KULLANICI_VERITABANI, "w") as f:
-            json.dump(kullanicilar, f, indent=4)
-
-        messagebox.showinfo("Başarılı", "Kayıt başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.")
-        self.sayfa_giris()
 
     def sifre_sifirla(self, k_adi):
         k_adi = k_adi.strip().lower()
-        with open(KULLANICI_VERITABANI, "r") as f:
-            kullanicilar = json.load(f)
-
-        if k_adi not in kullanicilar:
-            messagebox.showerror("Hata", "Sistemde böyle bir kullanıcı bulunamadı!")
-            return
-
-        yeni_sifre = str(random.randint(100000, 999999))
-        kullanicilar[k_adi]["sifre"] = sifre_hashle(yeni_sifre)
-        k_mail = kullanicilar[k_adi].get("eposta", "Bilinmiyor")
-
-        with open(KULLANICI_VERITABANI, "w") as f:
-            json.dump(kullanicilar, f, indent=4)
-
-        gonderen_mail = "adaletnottakip@gmail.com" 
-        uygulama_sifresi = "jvomdgdepznwskxw" 
-
+        
         try:
+            ref = db.reference('kullanicilar')
+            kullanicilar = ref.get() or {}
+
+            if k_adi not in kullanicilar:
+                messagebox.showerror("Hata", "Sistemde böyle bir kullanıcı bulunamadı!")
+                return
+
+            yeni_sifre = str(random.randint(100000, 999999))
+            kullanicilar[k_adi]["sifre"] = sifre_hashle(yeni_sifre)
+            k_mail = kullanicilar[k_adi].get("eposta", "Bilinmiyor")
+
+            ref.set(kullanicilar)
+
+            gonderen_mail = "adaletnottakip@gmail.com" 
+            uygulama_sifresi = "jvomdgdepznwskxw" 
+
             msg = MIMEMultipart('alternative')
             msg['Subject'] = 'Adalet Not Takip - Şifre Sıfırlama Talebi'
             msg['From'] = f"Adalet Not Takip <{gonderen_mail}>"
             msg['To'] = k_mail
-
             logo_linki = "https://i.postimg.cc/GhdKVf2L/3ebb5f0b-36a6-46f5-842d-dd1a00b3c173-Picsart-Background-Remover.png"
-
-            duz_yazi = f"Adalet Not Takip\nGeçici Şifreniz: {yeni_sifre}\nLütfen sisteme giriş yapıp şifrenizi güncelleyin."
-            msg.attach(MIMEText(duz_yazi, 'plain', 'utf-8'))
 
             html_icerik = f"""
             <html>
               <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; margin: 0; padding: 40px 20px;">
                 <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 40px 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center;">
-                  
                   <img src="{logo_linki}" alt="Adalet Not Takip Logo" style="width: 300px; margin-bottom: 15px;">
-                  
                   <h2 style="color: #313244; margin-bottom: 20px; font-size: 24px;">Şifre Sıfırlama Talebi</h2>
                   <p style="color: #555555; font-size: 16px; text-align: left; line-height: 1.6;">Merhaba,</p>
                   <p style="color: #555555; font-size: 16px; text-align: left; line-height: 1.6;">
                     <strong>Adalet Not Takip</strong> sistemine giriş yapabilmeniz için geçici şifreniz başarıyla oluşturulmuştur.
                   </p>
-                  
                   <div style="background-color: #4a90e2; color: #ffffff; padding: 15px; font-size: 32px; font-weight: bold; border-radius: 6px; margin: 30px 0; letter-spacing: 5px;">
                     {yeni_sifre}
                   </div>
-                  
                   <p style="color: #555555; font-size: 15px; text-align: left; line-height: 1.6;">
                     Güvenliğiniz için lütfen sisteme giriş yaptıktan sonra <b>Ayarlar</b> menüsünden şifrenizi güncelleyiniz.
                   </p>
-                  
-                  <br>
-                  <p style="color: #555555; font-size: 15px; text-align: left;">
-                    İyi çalışmalar dileriz,<br>
-                    <strong style="color: #313244;">Adalet Not Takip Asistanı</strong>
-                  </p>
-                  
                   <hr style="border: none; border-top: 1px solid #eeeeee; margin-top: 40px; margin-bottom: 20px;">
-                  <p style="color: #999999; font-size: 12px;">
-                    Bu e-posta sistem tarafından otomatik olarak gönderilmiştir. Lütfen bu mesaja yanıt vermeyiniz.
-                  </p>
+                  <p style="color: #999999; font-size: 12px;">Bu e-posta sistem tarafından otomatik gönderilmiştir.</p>
                 </div>
               </body>
             </html>
             """
-            
             msg.attach(MIMEText(html_icerik, 'html', 'utf-8'))
 
             server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -308,17 +316,15 @@ class GirisEkrani:
             messagebox.showinfo("Başarılı", f"Geçici şifreniz {k_mail} adresine başarıyla gönderildi!")
             
         except Exception as e:
-            messagebox.showerror("Mail Hatası", f"Mail gönderilemedi. Lütfen internet bağlantınızı ve mail ayarlarınızı kontrol edin.\nHata detayı: {e}")
+            messagebox.showerror("Hatası", f"İşlem başarısız oldu: {e}")
         
         self.sayfa_giris()
 
 # --- ANA UYGULAMA (ADALET NOT TAKİP) ---
 class NotUygulamasi:
-    def __init__(self, root, kullanici_adi, gizli_anahtar):
+    def __init__(self, root, kullanici_adi):
         self.root = root
         self.kullanici_adi = kullanici_adi
-        self.gizli_anahtar = gizli_anahtar 
-        self.data_file = f"data_{self.kullanici_adi}.json"
         
         self.ayarlar = ayar_yukle()
         self.tema_adi = self.ayarlar.get("tema", "dark")
@@ -337,33 +343,21 @@ class NotUygulamasi:
         self.arayuz_kur()
         self.hatirlatici_kontrol()
 
-    def sifrele(self, metin, anahtar):
-        xorlanmis = "".join(chr(ord(m) ^ ord(anahtar[i % len(anahtar)])) for i, m in enumerate(metin))
-        return base64.b64encode(xorlanmis.encode('utf-8')).decode('utf-8')
-
-    def coz(self, sifreli_metin, anahtar):
-        try:
-            decode_edilmis = base64.b64decode(sifreli_metin.encode('utf-8')).decode('utf-8')
-            return "".join(chr(ord(m) ^ ord(anahtar[i % len(anahtar)])) for i, m in enumerate(decode_edilmis))
-        except: return ""
-
     def veri_yukle(self):
-        if os.path.exists(self.data_file):
-            try:
-                with open(self.data_file, "r", encoding="utf-8") as f:
-                    sifreli_veri = f.read()
-                    if not sifreli_veri: return []
-                    cozulmus = json.loads(self.coz(sifreli_veri, self.gizli_anahtar))
-                    return cozulmus
-            except:
-                messagebox.showerror("Hata", "Veri dosyası okunamadı!")
-                return []
-        return []
+        try:
+            ref = db.reference(f'notlar/{self.kullanici_adi}')
+            veriler = ref.get()
+            return veriler if veriler else []
+        except Exception as e:
+            messagebox.showerror("Bağlantı Hatası", "Bulut veritabanına ulaşılamadı. Lütfen internetinizi kontrol edin.")
+            return []
 
     def veri_kaydet(self):
-        veri_str = json.dumps(self.notlar, ensure_ascii=False)
-        with open(self.data_file, "w", encoding="utf-8") as f:
-            f.write(self.sifrele(veri_str, self.gizli_anahtar))
+        try:
+            ref = db.reference(f'notlar/{self.kullanici_adi}')
+            ref.set(self.notlar)
+        except Exception as e:
+            messagebox.showerror("Kayıt Hatası", "Veriler buluta kaydedilemedi!")
 
     def arayuz_kur(self):
         for w in self.root.winfo_children(): w.destroy()
@@ -378,16 +372,11 @@ class NotUygulamasi:
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
-        # --- 1. YENİ KULLANICI PROFİL GÖRÜNÜMÜ ---
         profil_kutu = tk.Frame(self.sidebar, bg=self.t["sidebar"])
         profil_kutu.pack(pady=(30, 20))
-        
-        # Simgeyi metinden ayırıp fontunu 35 yaparak devasa hale getirdik
         tk.Label(profil_kutu, text="👤", bg=self.t["sidebar"], fg=self.t["blue"], font=("Segoe UI", 35)).pack()
-        # Kullanıcı adını hemen simgenin altına ortalayarak koyduk
         tk.Label(profil_kutu, text=self.kullanici_adi.upper(), bg=self.t["sidebar"], fg=self.t["fg"], font=("Segoe UI", 12, "bold")).pack(pady=(5, 0))
 
-        # --- 2. ÜST MENÜ (Hesap Değiştir Buradan Çıkartıldı) ---
         menus = [
             ("📝 Yeni Not Ekle", self.sayfa_yeni_not),
             ("📚 Tüm İşler", lambda: self.sayfa_not_listesi("Tümü")),
@@ -400,13 +389,8 @@ class NotUygulamasi:
                             bd=0, anchor="w", padx=20, cursor="hand2", activebackground=self.t["accent"], command=komut)
             btn.pack(fill="x", pady=5, ipady=10)
 
-        # --- 3. ALT BUTONLAR (Aşağıdan Yukarıya Doğru Sabitlenir) ---
-        
-        # ÇIKIŞ YAP (En Altta - Kırmızı)
         tk.Button(self.sidebar, text="🚪 Çıkış Yap", bg=self.t["red"], fg=self.t["btn_fg"], font=("Segoe UI", 10, "bold"), 
                   bd=0, cursor="hand2", command=self.cikis_yap).pack(side="bottom", fill="x", ipady=10)
-                  
-        # HESAP DEĞİŞTİR (Çıkış Yap'ın Üstünde - Mor)
         tk.Button(self.sidebar, text="🔄 Hesap Değiştir", bg=self.t["purple"], fg=self.t["btn_fg"], font=("Segoe UI", 10, "bold"), 
                   bd=0, cursor="hand2", command=self.hesap_degistir).pack(side="bottom", fill="x", ipady=10, pady=(0, 2))
 
@@ -542,17 +526,20 @@ class NotUygulamasi:
             messagebox.showwarning("Uyarı", "Lütfen şifre alanlarını doldurun.")
             return
             
-        with open(KULLANICI_VERITABANI, "r") as f:
-            kullanicilar = json.load(f)
+        try:
+            ref = db.reference('kullanicilar')
+            kullanicilar = ref.get() or {}
             
-        if kullanicilar[self.kullanici_adi]["sifre"] == sifre_hashle(eski):
-            kullanicilar[self.kullanici_adi]["sifre"] = sifre_hashle(yeni)
-            with open(KULLANICI_VERITABANI, "w") as f:
-                json.dump(kullanicilar, f, indent=4)
-            messagebox.showinfo("Başarılı", "Şifreniz başarıyla güncellendi!")
-            self.sayfa_ayarlar() 
-        else:
-            messagebox.showerror("Hata", "Eski şifrenizi yanlış girdiniz!")
+            if kullanicilar[self.kullanici_adi]["sifre"] == sifre_hashle(eski):
+                kullanicilar[self.kullanici_adi]["sifre"] = sifre_hashle(yeni)
+                ref.set(kullanicilar)
+                
+                messagebox.showinfo("Başarılı", "Şifreniz başarıyla güncellendi!")
+                self.sayfa_ayarlar() 
+            else:
+                messagebox.showerror("Hata", "Eski şifrenizi yanlış girdiniz!")
+        except Exception as e:
+            messagebox.showerror("Bulut Hatası", f"Şifre güncellenemedi: {e}")
 
     def tema_degistir_ana_uygulama(self):
         self.tema_adi = "light" if self.tema_adi == "dark" else "dark"
@@ -637,7 +624,6 @@ class NotUygulamasi:
             else: self.widget.attributes("-topmost", False)
         self.root.after(1000, self.hatirlatici_kontrol)
 
-    # --- YENİ EKLENEN: HESAP DEĞİŞTİR FONKSİYONU ---
     def hesap_degistir(self):
         self.ayarlar["beni_hatirla"] = False
         self.ayarlar.pop("son_kullanici", None)
@@ -648,7 +634,6 @@ class NotUygulamasi:
         for w in self.root.winfo_children(): w.destroy()
         GirisEkrani(self.root)
 
-    # --- GÜNCELLENEN: KOMPLE ÇIKIŞ YAP FONKSİYONU ---
     def cikis_yap(self):
         if self.widget: self.widget.destroy()
         self.root.destroy()
