@@ -47,7 +47,6 @@ class GirisEkrani:
         self.root = root
         self.root.title("Adalet Not Takip - Giriş")
         self.root.geometry("450x650")
-        
         self.ayarlar = ayar_yukle()
         self.tema_adi = self.ayarlar.get("tema", "dark")
         self.t = THEMES[self.tema_adi]
