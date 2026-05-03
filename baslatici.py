@@ -5,7 +5,7 @@ import subprocess
 import tkinter as tk
 
 # --- AYARLAR KISMI ---
-GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/senin_hesabin/adalet-not-takip/main/adalet_not_takip.py"
+GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/refs/heads/main/adalet_not_takip.py"
 YEREL_DOSYA = "adalet_not_takip.py" 
 
 def guncelleme_kontrol():
