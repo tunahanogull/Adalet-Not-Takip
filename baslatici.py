@@ -8,29 +8,36 @@ import tkinter as tk
 GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/refs/heads/main/adalet_not_takip.py"
 YEREL_DOSYA = "adalet_not_takip.py" 
 
+# --- ÇELİK FİLTRE: GÖRÜNMEZ KARAKTERLERİ YOK EDER ---
+def kod_temizle(kod_metni):
+    if not kod_metni: return ""
+    # 1. Satırları ayır (Windows, Mac, Linux tüm enter türlerini eşitler)
+    # 2. Her satırın sonundaki görünmez boşlukları sil (rstrip)
+    # 3. Hepsini standart birleştir ve baştaki/sondaki boşlukları at
+    satirlar = [s.rstrip() for s in kod_metni.splitlines()]
+    return '\n'.join(satirlar).strip()
+
 def guncelleme_kontrol():
     try:
-        # İnternetteki kodu çek
+        # İnternetteki kodu çek (utf-8-sig ile gizli BOM imzasını siliyoruz)
         cevap = urllib.request.urlopen(GUNCEL_KOD_LINKI, timeout=5)
-        en_yeni_kod = cevap.read().decode('utf-8')
+        en_yeni_kod = cevap.read().decode('utf-8-sig') 
         
         # Bilgisayardaki mevcut kodu oku
         eski_kod = ""
         if os.path.exists(YEREL_DOSYA):
-            with open(YEREL_DOSYA, "r", encoding="utf-8") as f:
+            with open(YEREL_DOSYA, "r", encoding="utf-8-sig") as f:
                 eski_kod = f.read()
                 
-        # --- KRİTİK DÜZELTME BURADA ---
-        # Her iki tarafın da gizli enter (Windows/Linux) karakterlerini ve sondaki boşluklarını siliyoruz
-        yeni_temiz = en_yeni_kod.strip().replace('\r\n', '\n')
-        eski_temiz = eski_kod.strip().replace('\r\n', '\n')
+        # KODLARI FİLTREDEN GEÇİRİP SAF HALLERİNİ KIYASLA
+        yeni_temiz = kod_temizle(en_yeni_kod)
+        eski_temiz = kod_temizle(eski_kod)
                 
-        # KODLARI KARŞILAŞTIR (Artık saf hallerini kıyaslıyoruz)
         if yeni_temiz != eski_temiz:
             durum_etiketi.config(text="🎉 Yeni Güncelleme Bulundu!\nSisteme Entegre Ediliyor...", fg="#a6e3a1") 
             root.update()
             
-            # Yeni kodu eski dosyanın üzerine yaz
+            # Yeni kodu kaydederken standart utf-8 kullanıyoruz
             with open(YEREL_DOSYA, "w", encoding="utf-8") as f:
                 f.write(en_yeni_kod)
             
