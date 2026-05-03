@@ -16,6 +16,15 @@ from email.mime.multipart import MIMEMultipart
 import firebase_admin
 from firebase_admin import credentials, db
 
+# --- GİZLİ YOL AYARI ---
+# Windows'un gizli AppData klasöründe "AdaletNotTakip" adlı bir klasör oluşturur
+APP_DATA_YOLU = os.path.join(os.getenv('APPDATA'), 'AdaletNotTakip')
+if not os.path.exists(APP_DATA_YOLU):
+    os.makedirs(APP_DATA_YOLU)
+
+# Artık dosyayı yanına değil, o gizli klasöre kaydedecek
+YEREL_DOSYA = os.path.join(APP_DATA_YOLU, "adalet_not_takip.py")
+
 # --- AYARLAR KISMI ---
 GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/main/adalet_not_takip.py"
 YEREL_DOSYA = "adalet_not_takip.py" 

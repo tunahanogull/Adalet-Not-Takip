@@ -17,6 +17,14 @@ from email.mime.multipart import MIMEMultipart
 import firebase_admin
 from firebase_admin import credentials, db
 
+# --- GİZLİ YOL AYARI ---
+APP_DATA_YOLU = os.path.join(os.getenv('APPDATA'), 'AdaletNotTakip')
+if not os.path.exists(APP_DATA_YOLU):
+    os.makedirs(APP_DATA_YOLU)
+
+# Ayarlar artık masaüstünde değil, gizli klasörde duracak
+AYARLAR_DOSYASI = os.path.join(APP_DATA_YOLU, "ayarlar.json")
+
 # --- SİSTEM AYARLARI ---
 ADMIN_KEY = base64.b64decode("YW5hZG9sdWFkYWxldC4zNA==").decode('utf-8') 
 AYARLAR_DOSYASI = "ayarlar.json"
