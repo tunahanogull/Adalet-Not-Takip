@@ -16,18 +16,17 @@ from email.mime.multipart import MIMEMultipart
 import firebase_admin
 from firebase_admin import credentials, db
 
-# --- GİZLİ YOL AYARI ---
-# Windows'un gizli AppData klasöründe "AdaletNotTakip" adlı bir klasör oluşturur
+# --- GİZLİ YOL SİSTEMİ (YENİ EKLENEN KISIM) ---
 APP_DATA_YOLU = os.path.join(os.getenv('APPDATA'), 'AdaletNotTakip')
 if not os.path.exists(APP_DATA_YOLU):
     os.makedirs(APP_DATA_YOLU)
 
-# Artık dosyayı yanına değil, o gizli klasöre kaydedecek
-YEREL_DOSYA = os.path.join(APP_DATA_YOLU, "adalet_not_takip.py")
-
 # --- AYARLAR KISMI ---
 GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/main/adalet_not_takip.py"
-YEREL_DOSYA = "adalet_not_takip.py" 
+
+# DEĞİŞEN SATIR BURASI: Artık sadece isim değil, AppData'nın tam adresini veriyoruz.
+YEREL_DOSYA = os.path.join(APP_DATA_YOLU, "adalet_not_takip.py") 
+
 UYGULAMAYA_GEC = False  # Motor kontrol bayrağı
 
 def kod_temizle(kod_metni):
@@ -52,6 +51,7 @@ def guncelleme_kontrol():
             durum_etiketi.config(text="🎉 Yeni Güncelleme Bulundu!\nSisteme Entegre Ediliyor...", fg="#a6e3a1") 
             root.update()
             
+            # Artık YEREL_DOSYA AppData'yı işaret ettiği için oraya indirir
             with open(YEREL_DOSYA, "w", encoding="utf-8") as f:
                 f.write(en_yeni_kod)
             
@@ -70,7 +70,7 @@ def guncelleme_kontrol():
 def uygulamayi_baslat():
     global UYGULAMAYA_GEC
     UYGULAMAYA_GEC = True
-    root.destroy() # Başlatıcının motorunu güvenle durdurup pencereyi yok eder
+    root.destroy()
 
 # --- BAŞLATICI ARAYÜZÜ ---
 root = tk.Tk()
@@ -95,23 +95,19 @@ durum_etiketi.pack(pady=10)
 
 root.after(500, guncelleme_kontrol)
 
-# Başlatıcının kendi motoru burada çalışır ve kapanana kadar alt satıra geçmez.
 root.mainloop()
 
-# --- MOTORLARIN AYRILDIĞI NOKTA ---
+# --- MOTORLARIN AYRILDIĞI NOKTA VE HATA YAKALAYICI ---
 if UYGULAMAYA_GEC and os.path.exists(YEREL_DOSYA):
     with open(YEREL_DOSYA, "r", encoding="utf-8") as f:
         ana_kod = f.read()
     
-    # Motorun çalışması için gerekli ortamı hazırlıyoruz
     calisma_alani = globals().copy()
     calisma_alani['__name__'] = '__main__'
     
     try:
-        # Kodları çalıştır
         exec(ana_kod, calisma_alani)
     except Exception as e:
-        # EĞER BİR HATA OLURSA SESSİZCE KAPANMASIN, EKRANA YAZSIN!
         import traceback
         print("\n" + "="*50)
         print("KRİTİK BİR HATA OLUŞTU! İŞTE DETAYI:")
