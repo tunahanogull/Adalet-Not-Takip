@@ -394,7 +394,7 @@ class NotUygulamasi:
 
         # MENÜYE "HESAP DEĞİŞTİR" EKLENDİ
         menus = [
-            ("📝 Yeni Not Ekle", self.sayfa_yeni_not),
+            ("📝 Tunahan", self.sayfa_yeni_not),
             ("📚 Tüm İşler", lambda: self.sayfa_not_listesi("Tümü")),
             ("📌 Sözlü Gün", lambda: self.sayfa_not_listesi("Sözlü")),
             ("⚙️ Ayarlar", self.sayfa_ayarlar),
