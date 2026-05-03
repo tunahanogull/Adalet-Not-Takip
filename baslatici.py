@@ -6,7 +6,7 @@ import tkinter as tk
 
 # --- AYARLAR KISMI ---
 GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/refs/heads/main/adalet_not_takip.py"
-YEREL_DOSYA = "uygulama.py" 
+YEREL_DOSYA = "adalet_not_takip.py" 
 
 # --- ÇELİK FİLTRE: GÖRÜNMEZ KARAKTERLERİ YOK EDER ---
 def kod_temizle(kod_metni):
