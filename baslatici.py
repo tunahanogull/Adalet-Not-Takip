@@ -4,7 +4,7 @@ import sys
 import tkinter as tk
 
 # --- ANA UYGULAMANIN İHTİYAÇ DUYDUĞU KÜTÜPHANELER ---
-# (Bunları buraya ekliyoruz ki .exe yaparken hepsi başlatıcının içine gömülsün)
+# (.exe oluşturulurken tüm motorların pakete gömülmesi için mecburidir)
 from tkinter import ttk, messagebox
 import json
 from datetime import datetime
@@ -17,12 +17,12 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# --- YENİ: FIREBASE KÜTÜPHANESİ (.exe'nin içine gömülmesi için şart) ---
+# --- YENİ EKLENEN: FIREBASE KÜTÜPHANESİ ---
 import firebase_admin
 from firebase_admin import credentials, db
 
 # --- AYARLAR KISMI ---
-GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/refs/heads/main/adalet_not_takip.py"
+GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/main/adalet_not_takip.py"
 YEREL_DOSYA = "adalet_not_takip.py" 
 
 def kod_temizle(kod_metni):
@@ -65,13 +65,12 @@ def guncelleme_kontrol():
 def uygulamayi_baslat():
     root.destroy() 
     if os.path.exists(YEREL_DOSYA):
-        # --- KRİTİK DEĞİŞİKLİK BURADA ---
-        # Artık dosyayı Windows'a açtırmak yerine, exe'nin kendi iç motoruyla okuyup çalıştırıyoruz!
         with open(YEREL_DOSYA, "r", encoding="utf-8") as f:
             ana_kod = f.read()
         
-        # 'exec' komutu, o saf metni alır ve gerçek bir kod gibi beyninde çalıştırır.
-        exec(ana_kod, {'__name__': '__main__'})
+        # Dosyayı Windows'a açtırmak yerine kendi motoruyla beyninde çalıştırır
+        # globals() parametresi, gömülü dosyaları (sys._MEIPASS) hatasız bulmasını sağlar
+        exec(ana_kod, globals())
     else:
         print("HATA: Bilgisayarda çalıştırılacak uygulama bulunamadı.")
 
