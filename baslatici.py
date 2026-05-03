@@ -90,8 +90,22 @@ root.after(500, guncelleme_kontrol)
 root.mainloop()
 
 # --- MOTORLARIN AYRILDIĞI NOKTA ---
-# Üstteki arayüz tamamen kapandıktan (destroy edildikten) sonra asıl uygulama temiz bir şekilde tetiklenir.
 if UYGULAMAYA_GEC and os.path.exists(YEREL_DOSYA):
     with open(YEREL_DOSYA, "r", encoding="utf-8") as f:
         ana_kod = f.read()
-    exec(ana_kod, globals())
+    
+    # Motorun çalışması için gerekli ortamı hazırlıyoruz
+    calisma_alani = globals().copy()
+    calisma_alani['__name__'] = '__main__'
+    
+    try:
+        # Kodları çalıştır
+        exec(ana_kod, calisma_alani)
+    except Exception as e:
+        # EĞER BİR HATA OLURSA SESSİZCE KAPANMASIN, EKRANA YAZSIN!
+        import traceback
+        print("\n" + "="*50)
+        print("KRİTİK BİR HATA OLUŞTU! İŞTE DETAYI:")
+        print("="*50)
+        traceback.print_exc()
+        input("\nKapatmak için Enter'a basın...")
