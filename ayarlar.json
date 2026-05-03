@@ -1,4 +1,6 @@
 {
     "tema": "dark",
-    "beni_hatirla": false
+    "beni_hatirla": true,
+    "son_kullanici": "tuna",
+    "son_sifre": "MTIzNDU2"
 }

@@ -383,15 +383,21 @@ class NotUygulamasi:
         self.sidebar.pack(side="left", fill="y")
         self.sidebar.pack_propagate(False)
 
-        tk.Label(self.sidebar, text=f"👤 {self.kullanici_adi.upper()}", bg=self.t["sidebar"], fg=self.t["blue"], font=("Segoe UI", 14, "bold")).pack(pady=30)
+        # --- 1. YENİ KULLANICI PROFİL GÖRÜNÜMÜ ---
+        profil_kutu = tk.Frame(self.sidebar, bg=self.t["sidebar"])
+        profil_kutu.pack(pady=(30, 20))
+        
+        # Simgeyi metinden ayırıp fontunu 35 yaparak devasa hale getirdik
+        tk.Label(profil_kutu, text="👤", bg=self.t["sidebar"], fg=self.t["blue"], font=("Segoe UI", 35)).pack()
+        # Kullanıcı adını hemen simgenin altına ortalayarak koyduk
+        tk.Label(profil_kutu, text=self.kullanici_adi.upper(), bg=self.t["sidebar"], fg=self.t["fg"], font=("Segoe UI", 12, "bold")).pack(pady=(5, 0))
 
-        # MENÜYE "HESAP DEĞİŞTİR" EKLENDİ
+        # --- 2. ÜST MENÜ (Hesap Değiştir Buradan Çıkartıldı) ---
         menus = [
             ("📝 Yeni Not Ekle", self.sayfa_yeni_not),
             ("📚 Tüm İşler", lambda: self.sayfa_not_listesi("Tümü")),
             ("📌 Sözlü Gün", lambda: self.sayfa_not_listesi("Sözlü")),
-            ("⚙️ Ayarlar", self.sayfa_ayarlar),
-            ("🔄 Hesap Değiştir", self.hesap_degistir)
+            ("⚙️ Ayarlar", self.sayfa_ayarlar)
         ]
 
         for metin, komut in menus:
@@ -399,9 +405,15 @@ class NotUygulamasi:
                             bd=0, anchor="w", padx=20, cursor="hand2", activebackground=self.t["accent"], command=komut)
             btn.pack(fill="x", pady=5, ipady=10)
 
-        # ÇIKIŞ YAP ARTIK UYGULAMAYI KAPATACAK
+        # --- 3. ALT BUTONLAR (Aşağıdan Yukarıya Doğru Sabitlenir) ---
+        
+        # ÇIKIŞ YAP (En Altta - Kırmızı)
         tk.Button(self.sidebar, text="🚪 Çıkış Yap", bg=self.t["red"], fg=self.t["btn_fg"], font=("Segoe UI", 10, "bold"), 
                   bd=0, cursor="hand2", command=self.cikis_yap).pack(side="bottom", fill="x", ipady=10)
+                  
+        # HESAP DEĞİŞTİR (Çıkış Yap'ın Üstünde - Mor)
+        tk.Button(self.sidebar, text="🔄 Hesap Değiştir", bg=self.t["purple"], fg=self.t["btn_fg"], font=("Segoe UI", 10, "bold"), 
+                  bd=0, cursor="hand2", command=self.hesap_degistir).pack(side="bottom", fill="x", ipady=10, pady=(0, 2))
 
         self.icerik_alani = tk.Frame(self.root, bg=self.t["bg"])
         self.icerik_alani.pack(side="right", fill="both", expand=True)
