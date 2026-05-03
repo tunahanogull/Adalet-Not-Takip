@@ -45,7 +45,7 @@ def sifre_hashle(sifre):
 class GirisEkrani:
     def __init__(self, root):
         self.root = root
-        self.root.title("Adalet Not Takip - Giriş")
+        self.root.title("Yıldız Teknik - Giriş")
         self.root.geometry("450x650")
         
         self.ayarlar = ayar_yukle()
