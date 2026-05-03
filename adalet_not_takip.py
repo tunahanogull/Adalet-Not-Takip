@@ -501,7 +501,7 @@ class NotUygulamasi:
 
     def sayfa_ayarlar(self):
         self.icerigi_temizle()
-        tk.Label(self.icerik_alani, text="⚙️ Sistem Ayarları", bg=self.t["bg"], fg=self.t["fg"], font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=30, pady=(30, 20))
+        tk.Label(self.icerik_alani, text="⚙️ Sistem Ayarlar", bg=self.t["bg"], fg=self.t["fg"], font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=30, pady=(30, 20))
 
         ayar_kutusu = tk.Frame(self.icerik_alani, bg=self.t["accent"], padx=20, pady=20)
         ayar_kutusu.pack(fill="x", padx=30, pady=(0, 20))
