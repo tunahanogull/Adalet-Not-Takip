@@ -1,35 +1,41 @@
 import urllib.request
 import os
 import sys
-import subprocess
 import tkinter as tk
+
+# --- ANA UYGULAMANIN İHTİYAÇ DUYDUĞU KÜTÜPHANELER ---
+# (Bunları buraya ekliyoruz ki .exe yaparken hepsi başlatıcının içine gömülsün)
+from tkinter import ttk, messagebox
+import json
+from datetime import datetime
+import base64
+import hashlib
+import random
+import string
+from tkcalendar import Calendar
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # --- AYARLAR KISMI ---
 GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/refs/heads/main/adalet_not_takip.py"
 YEREL_DOSYA = "adalet_not_takip.py" 
 
-# --- ÇELİK FİLTRE: GÖRÜNMEZ KARAKTERLERİ YOK EDER ---
 def kod_temizle(kod_metni):
     if not kod_metni: return ""
-    # 1. Satırları ayır (Windows, Mac, Linux tüm enter türlerini eşitler)
-    # 2. Her satırın sonundaki görünmez boşlukları sil (rstrip)
-    # 3. Hepsini standart birleştir ve baştaki/sondaki boşlukları at
     satirlar = [s.rstrip() for s in kod_metni.splitlines()]
     return '\n'.join(satirlar).strip()
 
 def guncelleme_kontrol():
     try:
-        # İnternetteki kodu çek (utf-8-sig ile gizli BOM imzasını siliyoruz)
         cevap = urllib.request.urlopen(GUNCEL_KOD_LINKI, timeout=5)
         en_yeni_kod = cevap.read().decode('utf-8-sig') 
         
-        # Bilgisayardaki mevcut kodu oku
         eski_kod = ""
         if os.path.exists(YEREL_DOSYA):
             with open(YEREL_DOSYA, "r", encoding="utf-8-sig") as f:
                 eski_kod = f.read()
                 
-        # KODLARI FİLTREDEN GEÇİRİP SAF HALLERİNİ KIYASLA
         yeni_temiz = kod_temizle(en_yeni_kod)
         eski_temiz = kod_temizle(eski_kod)
                 
@@ -37,7 +43,6 @@ def guncelleme_kontrol():
             durum_etiketi.config(text="🎉 Yeni Güncelleme Bulundu!\nSisteme Entegre Ediliyor...", fg="#a6e3a1") 
             root.update()
             
-            # Yeni kodu kaydederken standart utf-8 kullanıyoruz
             with open(YEREL_DOSYA, "w", encoding="utf-8") as f:
                 f.write(en_yeni_kod)
             
@@ -56,9 +61,15 @@ def guncelleme_kontrol():
 def uygulamayi_baslat():
     root.destroy() 
     if os.path.exists(YEREL_DOSYA):
-        subprocess.Popen([sys.executable, YEREL_DOSYA]) 
+        # --- KRİTİK DEĞİŞİKLİK BURADA ---
+        # Artık dosyayı Windows'a açtırmak yerine, exe'nin kendi iç motoruyla okuyup çalıştırıyoruz!
+        with open(YEREL_DOSYA, "r", encoding="utf-8") as f:
+            ana_kod = f.read()
+        
+        # 'exec' komutu, o saf metni alır ve gerçek bir kod gibi beyninde çalıştırır.
+        exec(ana_kod, {'__name__': '__main__'})
     else:
-        print("HATA: Bilgisayarda çalıştırılacak uygulama bulunamadı ve internete bağlanılamadı.")
+        print("HATA: Bilgisayarda çalıştırılacak uygulama bulunamadı.")
 
 # --- BAŞLATICI ARAYÜZÜ ---
 root = tk.Tk()
