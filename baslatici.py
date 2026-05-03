@@ -17,6 +17,10 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+# --- YENİ: FIREBASE KÜTÜPHANESİ (.exe'nin içine gömülmesi için şart) ---
+import firebase_admin
+from firebase_admin import credentials, db
+
 # --- AYARLAR KISMI ---
 GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/refs/heads/main/adalet_not_takip.py"
 YEREL_DOSYA = "adalet_not_takip.py" 
