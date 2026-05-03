@@ -12,10 +12,9 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# --- SİSTEM AYARLARI ---
 ADMIN_KEY = base64.b64decode("YW5hZG9sdWFkYWxldC4zNA==").decode('utf-8') 
-KULLANICI_VERITABANI = "kullanicilar.json"
-AYARLAR_DOSYASI = "ayarlar.json"
+AYARLAR_DOSYASI = "ayarlar.json" # Bu yerel kalacak (Beni hatırla ve tema bilgisayara özeldir)
+FIREBASE_ANAHTAR = "firebase_anahtar.json"
 
 # --- TEMA SİSTEMİ ---
 THEMES = {
@@ -51,10 +50,6 @@ class GirisEkrani:
         self.tema_adi = self.ayarlar.get("tema", "dark")
         self.t = THEMES[self.tema_adi]
         self.root.configure(bg=self.t["bg"])
-        
-        if not os.path.exists(KULLANICI_VERITABANI):
-            with open(KULLANICI_VERITABANI, "w") as f:
-                json.dump({}, f)
                 
         # --- OTOMATİK GİRİŞ (BENİ HATIRLA) KONTROLÜ ---
         if self.ayarlar.get("beni_hatirla") and self.ayarlar.get("son_kullanici"):
