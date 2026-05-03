@@ -74,6 +74,17 @@ def uygulamayi_baslat():
 
 # --- BAŞLATICI ARAYÜZÜ ---
 root = tk.Tk()
+
+# EXE içine gizlenen logoyu bulup takma radarı
+def logo_yolunu_bul(goreceli_yol):
+    try: return os.path.join(sys._MEIPASS, goreceli_yol)
+    except Exception: return os.path.abspath(goreceli_yol)
+
+try:
+    root.iconbitmap(default=logo_yolunu_bul("logo.ico"))
+except Exception:
+    pass
+
 root.title("Adalet Not Takip Updater")
 root.geometry("400x160")
 root.configure(bg="#1e1e2e") 
