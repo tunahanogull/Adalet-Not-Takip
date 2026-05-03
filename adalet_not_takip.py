@@ -644,6 +644,13 @@ class NotUygulamasi:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    
+    # --- LOGO AYARI (Tüm pencerelere uygular) ---
+    try:
+        root.iconbitmap(default=dosya_yolunu_bul("logo.ico"))
+    except Exception:
+        pass # Logo bulunamazsa hata vermez, çalışmaya devam eder
+        
     app = GirisEkrani(root)
     root.protocol("WM_DELETE_WINDOW", root.quit)
     root.mainloop()
