@@ -2,9 +2,6 @@ import urllib.request
 import os
 import sys
 import tkinter as tk
-
-# --- ANA UYGULAMANIN İHTİYAÇ DUYDUĞU KÜTÜPHANELER ---
-# (.exe oluşturulurken tüm motorların pakete gömülmesi için mecburidir)
 from tkinter import ttk, messagebox
 import json
 from datetime import datetime
@@ -16,14 +13,13 @@ from tkcalendar import Calendar
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
-# --- YENİ EKLENEN: FIREBASE KÜTÜPHANESİ ---
 import firebase_admin
 from firebase_admin import credentials, db
 
 # --- AYARLAR KISMI ---
 GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/main/adalet_not_takip.py"
 YEREL_DOSYA = "adalet_not_takip.py" 
+UYGULAMAYA_GEC = False  # Motor kontrol bayrağı
 
 def kod_temizle(kod_metni):
     if not kod_metni: return ""
@@ -63,16 +59,9 @@ def guncelleme_kontrol():
         root.after(2000, uygulamayi_baslat)
 
 def uygulamayi_baslat():
-    root.destroy() 
-    if os.path.exists(YEREL_DOSYA):
-        with open(YEREL_DOSYA, "r", encoding="utf-8") as f:
-            ana_kod = f.read()
-        
-        # Dosyayı Windows'a açtırmak yerine kendi motoruyla beyninde çalıştırır
-        # globals() parametresi, gömülü dosyaları (sys._MEIPASS) hatasız bulmasını sağlar
-        exec(ana_kod, globals())
-    else:
-        print("HATA: Bilgisayarda çalıştırılacak uygulama bulunamadı.")
+    global UYGULAMAYA_GEC
+    UYGULAMAYA_GEC = True
+    root.destroy() # Başlatıcının motorunu güvenle durdurup pencereyi yok eder
 
 # --- BAŞLATICI ARAYÜZÜ ---
 root = tk.Tk()
@@ -97,4 +86,12 @@ durum_etiketi.pack(pady=10)
 
 root.after(500, guncelleme_kontrol)
 
+# Başlatıcının kendi motoru burada çalışır ve kapanana kadar alt satıra geçmez.
 root.mainloop()
+
+# --- MOTORLARIN AYRILDIĞI NOKTA ---
+# Üstteki arayüz tamamen kapandıktan (destroy edildikten) sonra asıl uygulama temiz bir şekilde tetiklenir.
+if UYGULAMAYA_GEC and os.path.exists(YEREL_DOSYA):
+    with open(YEREL_DOSYA, "r", encoding="utf-8") as f:
+        ana_kod = f.read()
+    exec(ana_kod, globals())
