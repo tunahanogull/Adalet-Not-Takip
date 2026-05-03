@@ -464,7 +464,7 @@ class NotUygulamasi:
 
     def sayfa_not_listesi(self, filtre="Tümü"):
         self.icerigi_temizle()
-        baslik = "Tüm İşlerim" if filtre == "Tümü" else "📌 Sözlü Gün"
+        baslik = "📚 Tüm İşlerim" if filtre == "Tümü" else "📌 Sözlü Gün"
         tk.Label(self.icerik_alani, text=baslik, bg=self.t["bg"], fg=self.t["fg"], font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=30, pady=(30, 20))
 
         canvas = tk.Canvas(self.icerik_alani, bg=self.t["bg"], highlightthickness=0)
