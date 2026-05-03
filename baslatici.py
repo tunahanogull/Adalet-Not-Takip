@@ -6,7 +6,7 @@ import tkinter as tk
 
 # --- AYARLAR KISMI ---
 GUNCEL_KOD_LINKI = "https://raw.githubusercontent.com/tunahanogull/Adalet-Not-Takip/refs/heads/main/adalet_not_takip.py"
-YEREL_DOSYA = "baslatici.py" 
+YEREL_DOSYA = "adalet_not_takip.py" 
 
 def guncelleme_kontrol():
     try:
